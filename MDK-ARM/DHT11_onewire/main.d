@@ -25,7 +25,7 @@ dht11_onewire\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_cortex.h
 dht11_onewire\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash.h
 dht11_onewire\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
 dht11_onewire\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
+dht11_onewire\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
+dht11_onewire\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 dht11_onewire\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 dht11_onewire\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-dht11_onewire\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
-dht11_onewire\main.o: ..\LIBDHT11\DHT.h

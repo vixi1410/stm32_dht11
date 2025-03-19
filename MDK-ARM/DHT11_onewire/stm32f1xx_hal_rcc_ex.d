@@ -24,4 +24,6 @@ dht11_onewire\stm32f1xx_hal_rcc_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f
 dht11_onewire\stm32f1xx_hal_rcc_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash.h
 dht11_onewire\stm32f1xx_hal_rcc_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
 dht11_onewire\stm32f1xx_hal_rcc_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
+dht11_onewire\stm32f1xx_hal_rcc_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
+dht11_onewire\stm32f1xx_hal_rcc_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 dht11_onewire\stm32f1xx_hal_rcc_ex.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h

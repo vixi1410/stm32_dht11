@@ -19,10 +19,9 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stdio.h"
-#include "stdint.h"
-#include <string.h>
-#include "DHT.h"
+#include "stm32f1xx_hal.h"
+#include <stdio.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -43,6 +42,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim4;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
@@ -53,29 +54,62 @@ UART_HandleTypeDef huart1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
-#ifdef __GNUC__
-#define PUTCHAR_PROTOTYPE int__io_putchar(int ch)
-#else
-#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif
-PUTCHAR_PROTOTYPE
+void Delay_1ms(uint32_t time_ms);
+void DHT11_Read(uint8_t *temperature, uint8_t *humidity);
+void UART_SendString(char *str);
+
+void Delay_1ms(uint32_t time_ms)
 {
-HAL_UART_Transmit(&huart1, (uint8_t *)&ch,1,0xFFFF);
-return ch;
+    __HAL_TIM_SET_COUNTER(&htim4, 0);
+    for (uint32_t i = 0; i < time_ms; i++)
+    {
+        while (__HAL_TIM_GET_COUNTER(&htim4) < 1000);
+        __HAL_TIM_SET_COUNTER(&htim4, 0);
+    }
 }
-void Read_DataDHT (void);
+
+void DHT11_Read(uint8_t *temperature, uint8_t *humidity) 
+{
+    uint8_t u8Buff[5] = {0};
+    uint16_t u16Tim;
+    
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
+    Delay_1ms(18);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
+    
+    __HAL_TIM_SET_COUNTER(&htim4, 0);
+    while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14) && __HAL_TIM_GET_COUNTER(&htim4) < 40);
+    while (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14) && __HAL_TIM_GET_COUNTER(&htim4) < 80);
+    while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14) && __HAL_TIM_GET_COUNTER(&htim4) < 80);
+    
+    for (int j = 0; j < 5; j++) {
+        for (int i = 0; i < 8; i++) {
+            while (!HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14));
+            __HAL_TIM_SET_COUNTER(&htim4, 0);
+            while (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14));
+            u16Tim = __HAL_TIM_GET_COUNTER(&htim4);
+            u8Buff[j] <<= 1;
+            if (u16Tim > 40) u8Buff[j] |= 1;
+        }
+    }
+    
+    uint8_t checksum = u8Buff[0] + u8Buff[1] + u8Buff[2] + u8Buff[3];
+    if (checksum == u8Buff[4]) {
+        *humidity = u8Buff[0];
+        *temperature = u8Buff[2];
+    }
+}
+
+void UART_SendString(char *str)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), HAL_MAX_DELAY);
+}
 /* USER CODE END PFP */
-DHT_DataTypedef DHT11_Data;
 
-float Temperature, Humidity;
-
-long last = 0;
-
-int i = 0;
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t data[]= "Hello\n";
 /* USER CODE END 0 */
 
 /**
@@ -107,41 +141,28 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-  /* USER CODE BEGIN 2 */
-	
-  /* USER CODE END 2 */
+  MX_TIM4_Init();
+	HAL_TIM_Base_Start(&htim4);
 
+  /* USER CODE BEGIN 2 */
+	char buffer[50];
+  uint8_t humidity, temperature;
+  /* USER CODE END 2 */
+	
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-		HAL_UART_Transmit(&huart1,data,sizeof(data),10);
-		HAL_Delay(1000);
-		Read_DataDHT();
-		
+				DHT11_Read(&temperature, &humidity);
+        sprintf(buffer, "Temperature: %d°C, Humidity: %d%%\n", temperature, humidity);
+        UART_SendString(buffer);
+        HAL_Delay(1000);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
-void Read_DataDHT (void)
-{
-	DHT_GetData(&DHT11_Data);
-	Temperature = DHT11_Data. Temperature;
-	Humidity = DHT11_Data.Humidity;
-	last = HAL_GetTick();
-	while (1)
-	{
-		if (HAL_GetTick() - last >= 1200)
-		{
-			i++;
-			printf("%d.Temperature: %0.2f Humidity: %0.2f\r\n", i, Temperature, Humidity);
 
-			last = HAL_GetTick();
-			break;
-		}
-	}
-}
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -178,6 +199,51 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM4 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM4_Init(void)
+{
+
+  /* USER CODE BEGIN TIM4_Init 0 */
+
+  /* USER CODE END TIM4_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM4_Init 1 */
+
+  /* USER CODE END TIM4_Init 1 */
+  htim4.Instance = TIM4;
+  htim4.Init.Prescaler = 72-1;
+  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim4.Init.Period = 0xffff-1;
+  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM4_Init 2 */
+
+  /* USER CODE END TIM4_Init 2 */
+
 }
 
 /**
@@ -223,38 +289,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : PC13 PC14 PC15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3
-                           PA4 PA5 PA6 PA7
-                           PA8 PA11 PA12 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
-                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
-                          |GPIO_PIN_8|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB0 PB1 PB2 PB10
-                           PB11 PB12 PB13 PB15
-                           PB3 PB4 PB5 PB6
-                           PB7 PB8 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
-                          |GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_15
-                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6
-                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB14 */
   GPIO_InitStruct.Pin = GPIO_PIN_14;
